@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상담 신청 관리</title>
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fg:#171717; --bg:#FFFFFF; --muted:#F5F5F5; --muted-2:#EDEDED;
+    --muted-fg:#737373; --border:#DEDEE3; --accent:#DD7A3A; --accent-deep:#B85F27;
+    --radius:.75rem;
+  }
+  *{box-sizing:border-box;}
+  body{ font-family:'Inter','Noto Sans KR',sans-serif; background:var(--muted); color:var(--fg); }
+  .font-display{font-family:'Plus Jakarta Sans','Noto Sans KR',sans-serif;}
+  .btn-primary{
+    background:var(--accent); color:#fff; border-radius:var(--radius);
+    transition:background .15s ease, transform .15s ease;
+  }
+  .btn-primary:hover{ background:var(--accent-deep); }
+  .btn-primary:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .btn-ghost{
+    background:transparent; color:var(--fg); border:1.5px solid var(--border); border-radius:var(--radius);
+    transition:background .15s ease;
+  }
+  .btn-ghost:hover{ background:var(--muted-2); }
+  .btn-ghost:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+  .btn-ghost:active{ transform:scale(.98); }
+
+  .input-field{
+    border-radius:var(--radius); border:1.5px solid var(--border);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .input-field:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px #F6E2D0; }
+
+  .card-shadow{ box-shadow:0 1px 2px rgba(23,23,23,.04), 0 8px 16px -6px rgba(23,23,23,.06); border:1px solid var(--border); }
+
+  .status-pending{ background:#FFF1E0; color:#B85F27; }
+  .status-completed{ background:#E7F5EC; color:#1F7A46; }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Login -->
+<div id="loginView" class="min-h-screen flex items-center justify-center px-5">
+  <form id="loginForm" class="bg-white rounded-token card-shadow p-8 w-full max-w-sm" style="border-radius:var(--radius)">
+    <h1 class="font-display font-700 text-xl mb-1">상담 신청 관리</h1>
+    <p class="text-sm mb-6" style="color:var(--muted-fg)">관리자 계정으로 로그인해주세요.</p>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-sm font-semibold mb-1.5">이메일</label>
+        <input type="email" id="loginEmail" required class="input-field w-full px-4 py-2.5" placeholder="admin@example.com">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1.5">비밀번호</label>
+        <input type="password" id="loginPassword" required class="input-field w-full px-4 py-2.5" placeholder="••••••••">
+      </div>
+    </div>
+    <p id="loginError" hidden class="text-sm mt-3" style="color:#C0392B">이메일 또는 비밀번호가 올바르지 않습니다.</p>
+    <button type="submit" id="loginBtn" class="btn-primary w-full font-semibold text-sm py-3 mt-5">로그인</button>
+  </form>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboardView" hidden class="max-w-5xl mx-auto px-5 sm:px-8 py-10">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display font-700 text-2xl">상담 신청 관리</h1>
+      <p class="text-sm mt-1" style="color:var(--muted-fg)">도전30일 챌린지</p>
+    </div>
+    <button id="logoutBtn" class="btn-ghost font-semibold text-sm px-4 py-2">로그아웃</button>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-8">
+    <div class="bg-white rounded-token card-shadow p-5" style="border-radius:var(--radius)">
+      <p class="text-xs font-semibold" style="color:var(--muted-fg)">총 신청 수</p>
+      <p id="statTotal" class="font-display font-700 text-3xl mt-1">-</p>
+    </div>
+    <div class="bg-white rounded-token card-shadow p-5" style="border-radius:var(--radius)">
+      <p class="text-xs font-semibold" style="color:var(--muted-fg)">오늘 신청 수</p>
+      <p id="statToday" class="font-display font-700 text-3xl mt-1">-</p>
+    </div>
+    <div class="bg-white rounded-token card-shadow p-5" style="border-radius:var(--radius)">
+      <p class="text-xs font-semibold" style="color:var(--muted-fg)">대기중</p>
+      <p id="statPending" class="font-display font-700 text-3xl mt-1">-</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-token card-shadow overflow-hidden" style="border-radius:var(--radius)">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left border-b" style="border-color:var(--border); color:var(--muted-fg)">
+            <th class="px-5 py-3 font-semibold">이름</th>
+            <th class="px-5 py-3 font-semibold">이메일</th>
+            <th class="px-5 py-3 font-semibold">상태</th>
+            <th class="px-5 py-3 font-semibold">접수일</th>
+            <th class="px-5 py-3 font-semibold">상세</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <p id="emptyState" hidden class="text-center py-12 text-sm" style="color:var(--muted-fg)">아직 신청 내역이 없습니다.</p>
+  </div>
+</div>
+
+<!-- Detail modal -->
+<div id="detailModal" hidden class="fixed inset-0 z-50 flex items-center justify-center px-5" style="background:rgba(23,23,23,.5)">
+  <div class="bg-white rounded-token card-shadow p-6 sm:p-8 w-full max-w-lg max-h-[85vh] overflow-y-auto" style="border-radius:var(--radius)">
+    <div class="flex items-start justify-between mb-5">
+      <h2 class="font-display font-700 text-lg">신청 상세</h2>
+      <button id="closeModal" class="btn-ghost text-sm px-3 py-1.5">닫기</button>
+    </div>
+    <dl id="detailBody" class="space-y-4 text-sm"></dl>
+    <div class="mt-6 flex items-center gap-2">
+      <label class="text-sm font-semibold" style="color:var(--muted-fg)">상태 변경</label>
+      <select id="statusSelect" class="input-field px-3 py-2 text-sm">
+        <option value="pending">대기중</option>
+        <option value="completed">완료</option>
+      </select>
+      <button id="saveStatus" class="btn-primary font-semibold text-sm px-4 py-2">저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = 'https://bhjohxcaqakemtajfzxs.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_R_bK1At9cc1CfBOJa4Djxw_EhJ9d5qE';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginView = document.getElementById('loginView');
+  const dashboardView = document.getElementById('dashboardView');
+  let consultations = [];
+  let activeId = null;
+
+  async function checkSession(){
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      showDashboard();
+    } else {
+      loginView.hidden = false;
+      dashboardView.hidden = true;
+    }
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const errorEl = document.getElementById('loginError');
+    errorEl.hidden = true;
+    btn.disabled = true;
+    btn.textContent = '로그인 중...';
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    btn.disabled = false;
+    btn.textContent = '로그인';
+
+    if (error) {
+      errorEl.hidden = false;
+      return;
+    }
+    showDashboard();
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async function(){
+    await sb.auth.signOut();
+    loginView.hidden = false;
+    dashboardView.hidden = true;
+  });
+
+  async function showDashboard(){
+    loginView.hidden = true;
+    dashboardView.hidden = false;
+    await loadConsultations();
+  }
+
+  async function loadConsultations(){
+    const { data, error } = await sb.from('consultations').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error(error);
+      return;
+    }
+    consultations = data || [];
+    renderTable();
+    renderStats();
+  }
+
+  function renderStats(){
+    document.getElementById('statTotal').textContent = consultations.length;
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('statToday').textContent = consultations.filter(c => c.created_at && c.created_at.slice(0, 10) === today).length;
+    document.getElementById('statPending').textContent = consultations.filter(c => (c.status || 'pending') === 'pending').length;
+  }
+
+  function renderTable(){
+    const tbody = document.getElementById('tableBody');
+    const emptyState = document.getElementById('emptyState');
+    tbody.innerHTML = '';
+
+    if (consultations.length === 0) {
+      emptyState.hidden = false;
+      return;
+    }
+    emptyState.hidden = true;
+
+    consultations.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.className = 'border-b last:border-0';
+      tr.style.borderColor = 'var(--border)';
+      const status = c.status || 'pending';
+      const statusLabel = status === 'completed' ? '완료' : '대기중';
+      const statusClass = status === 'completed' ? 'status-completed' : 'status-pending';
+      const date = c.created_at ? new Date(c.created_at).toLocaleDateString('ko-KR') : '-';
+
+      tr.innerHTML = `
+        <td class="px-5 py-3 font-medium">${escapeHtml(c.name)}</td>
+        <td class="px-5 py-3" style="color:var(--muted-fg)">${escapeHtml(c.email)}</td>
+        <td class="px-5 py-3"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">${statusLabel}</span></td>
+        <td class="px-5 py-3" style="color:var(--muted-fg)">${date}</td>
+        <td class="px-5 py-3"><button class="btn-ghost text-xs font-semibold px-3 py-1.5" data-id="${c.id}">보기</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => openDetail(btn.dataset.id));
+    });
+  }
+
+  function escapeHtml(str){
+    if (!str) return '-';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function openDetail(id){
+    const c = consultations.find(x => String(x.id) === String(id));
+    if (!c) return;
+    activeId = c.id;
+
+    const body = document.getElementById('detailBody');
+    body.innerHTML = `
+      <div><dt class="font-semibold" style="color:var(--muted-fg)">이름</dt><dd class="mt-0.5">${escapeHtml(c.name)}</dd></div>
+      <div><dt class="font-semibold" style="color:var(--muted-fg)">이메일</dt><dd class="mt-0.5">${escapeHtml(c.email)}</dd></div>
+      <div><dt class="font-semibold" style="color:var(--muted-fg)">연락처</dt><dd class="mt-0.5">${escapeHtml(c.phone)}</dd></div>
+      <div><dt class="font-semibold" style="color:var(--muted-fg)">현재 상황</dt><dd class="mt-0.5 whitespace-pre-wrap">${escapeHtml(c.situation)}</dd></div>
+      <div><dt class="font-semibold" style="color:var(--muted-fg)">도전 이유</dt><dd class="mt-0.5 whitespace-pre-wrap">${escapeHtml(c.reason)}</dd></div>
+    `;
+    document.getElementById('statusSelect').value = c.status || 'pending';
+    document.getElementById('detailModal').hidden = false;
+  }
+
+  document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('detailModal').hidden = true;
+  });
+
+  document.getElementById('saveStatus').addEventListener('click', async () => {
+    if (!activeId) return;
+    const btn = document.getElementById('saveStatus');
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+    const newStatus = document.getElementById('statusSelect').value;
+
+    const { error } = await sb.from('consultations').update({ status: newStatus }).eq('id', activeId);
+
+    btn.disabled = false;
+    btn.textContent = '저장';
+
+    if (error) {
+      alert('저장 중 오류가 발생했습니다.');
+      console.error(error);
+      return;
+    }
+    document.getElementById('detailModal').hidden = true;
+    await loadConsultations();
+  });
+
+  checkSession();
+</script>
+</body>
+</html>
